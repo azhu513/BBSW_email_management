@@ -74,7 +74,19 @@ A Google Apps Script tool for managing email subscriber lists and batch sending 
    - G1: `Subscribe or Unsubscribe`
    - H1: `Partition` (optional—created automatically by "Assign/Refresh Partitions")
 
-### 7. Refresh and Verify
+### 7. Customize Sender Display Name
+
+By default, emails are sent with the display name "BBSW". To change this to your name or organization:
+
+1. In the Apps Script editor, open `appsscript/Admin.gs`
+2. Find line 391: `name: 'BBSW'`
+3. Replace `'BBSW'` with your preferred name (e.g., `'John Smith'` or `'BBSW Communications'`)
+4. Click **Save**
+5. Refresh your Google Sheet
+
+The next time you send an email, it will appear from your custom display name. Recipients will see "from: [Your Name] <your-email@gmail.com>" instead of "from: BBSW <your-email@gmail.com>".
+
+### 8. Refresh and Verify
 
 1. **Refresh the page** (or go back to your Google Sheet tab)
 2. You should now see the **Admin Tools** menu at the top
