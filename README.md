@@ -181,13 +181,13 @@ https://example.com/flyer.pdf
 
 ##### Step 6: Send or Save
 
-- **Clean + Dedup + Send** — Removes duplicate emails, then sends the campaign to all selected recipients. Failed sends are logged and removed from the list. Bounce audit runs automatically afterward.
+- **Clean + Dedup + Send** — Removes duplicate emails, then sends the campaign to all selected recipients. Failed sends are logged and removed from the list. Bounce audit runs automatically afterward. Includes all attachments (Drive files, URLs, and uploaded files).
   
-- **Save inputs** — Stores the subject, body, body mode, and attachments for later. Useful if you want to tweak formatting or use the same email again.
+- **Save inputs** — Stores the subject, body, body mode, and attachments for later. Useful if you want to tweak formatting or use the same email again. **Note:** Only Drive files and URLs are saved; uploaded files are included only in this send and won't be available for re-use.
 
 #### Send now (use saved inputs)
 
-Sends using previously saved subject, body, and attachments without opening the sidebar. Useful for quick re-sends without re-entering data.
+Sends using previously saved subject, body, body mode, partition filter, and attachments (Drive files and URLs only) without opening the sidebar. Useful for quick re-sends. **Note:** Uploaded files are not saved, so they won't be re-sent — only Drive files and public URLs attached to the saved inputs will be included.
 
 #### Schedule Re-Send in 1 Week
 
