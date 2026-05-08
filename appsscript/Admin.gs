@@ -387,7 +387,8 @@ function adminSendToSubscribed_(subjectTpl, bodyInput, bodyMode, attachBlobs, pa
     try {
       GmailApp.sendEmail(email, subj, stripHtml_(htmlBody), {
         htmlBody: htmlBody,
-        attachments: attachBlobs
+        attachments: attachBlobs,
+	      name: 'BBSW'
       });
       sentCount++;
       Utilities.sleep(200);
