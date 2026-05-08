@@ -137,6 +137,21 @@ The Team
 
 Each recipient sees their own data substituted in place of the placeholders.
 
+##### Adding Images to Email Body (Rich Text Editor Only)
+
+Images can only be embedded in **Rich Text Editor** mode. There are two ways to insert images:
+
+**Option 1: Paste from Clipboard**
+1. Copy an image to your clipboard (take a screenshot, right-click an image in your browser and select "Copy image", or copy an image file from Finder)
+2. Click into the Rich Text Editor area
+3. Press **⌘V** (Mac) or **Ctrl+V** (Windows/Linux)
+4. The image will be inserted into the editor
+
+**Option 2: Drag and Drop**
+1. Drag an image file from Finder directly into the Rich Text Editor area
+2. Or, drag an image from another browser tab into the editor
+3. The image will be inserted
+
 ##### Step 5: Add Attachments (Optional)
 
 **Attachments (Drive IDs / URLs, comma or newline separated)** — Attach files to the email:
