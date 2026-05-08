@@ -46,9 +46,11 @@ A Google Apps Script tool for managing email subscriber lists and batch sending 
 
 ### 4. Update Configuration
 
-1. Click on `appsscript.json` (you may need to click **Show more** → **Project settings**)
-2. Copy the contents from the `appsscript.json` file in this repository and update your project file
-3. Click **Save**
+1. In the Apps Script editor, click the **Project Settings** icon (gear icon) on the left sidebar
+2. Under **Show advanced settings**, enable **Show "appsscript.json" manifest file in editor**
+3. Click on `appsscript.json` in the file list (it should now be visible)
+4. Copy the contents from the `appsscript.json` file in this repository and paste it into your project file, replacing the existing content
+5. Click **Save**
 
 ### 5. Authorize the Script
 
@@ -84,16 +86,85 @@ All features are accessible via the **Admin Tools** menu that appears when you o
 
 ### Sending Campaigns
 
-**Send now (Sidebar)** — Opens an interactive sidebar to:
-- Select partition filter (all subscribers or a specific partition)
-- Compose subject and body with template placeholders
-- Choose body format: plain text, HTML, or rich text editor
-- Add attachments from Drive, URLs, or upload files
-- Save inputs for re-use
+#### Send now (Sidebar)
 
-**Send now (use saved inputs)** — Sends using previously saved subject, body, and attachments without opening the sidebar.
+Opens an interactive sidebar to compose and send emails. This is the main interface for campaigns.
 
-**Schedule Re-Send in 1 Week** — Creates a time-based trigger to automatically re-send the last campaign in 7 days.
+![Admin Sidebar](Sidebar.png)
+
+##### Step 1: Choose Recipients
+
+**Send to** — Select who receives this email:
+- **All subscribers** — Sends to all currently subscribed emails (default)
+- **Partition 0, 1, 2, ...** — Sends only to a specific partition. Use this to split large campaigns across multiple sendings to avoid hitting Gmail's rate limits.
+
+##### Step 2: Compose Subject
+
+**Subject** — Email subject line. You can use placeholders like `{{First Name}}` to personalize:
+- Example: `Welcome {{First Name}} — BBSW Update`
+- Placeholders are replaced with each recipient's data from the Email List
+
+##### Step 3: Choose Body Format
+
+**Body mode** — Controls how your email body is formatted and edited:
+
+- **Plain Text (auto-convert to HTML)** — Best for simple text emails. You type plain text; the script automatically converts it to HTML. Line breaks become paragraphs, multiple line breaks create space. Good for most emails.
+  
+- **HTML Textarea** — For advanced users. You write raw HTML directly. The script sends it as-is without modifications. Use this if you need fine-grained control over formatting, `<table>` layouts, or custom styling.
+  
+- **Rich Text Editor (WYSIWYG)** — Visual editor with toolbar. Click the formatting buttons (B, I, U) to bold/italicize/underline selected text. Use the Size and Font dropdowns to change font size and family. Best if you're not comfortable with HTML.
+
+##### Step 4: Format Body Content
+
+Enter your email body in the text area (Plain/HTML) or editor (Rich mode).
+
+**Personalization** — Use these placeholders in the body too:
+- `{{First Name}}`
+- `{{Last Name}}`
+- `{{Affiliation}}`
+- `{{Role}}`
+- `{{Email Address}}`
+
+Example (Plain Text mode):
+```
+Hi {{First Name}},
+
+Thank you for subscribing to BBSW updates. Your affiliation is {{Affiliation}} and your role is {{Role}}.
+
+Best regards,
+The Team
+```
+
+Each recipient sees their own data substituted in place of the placeholders.
+
+##### Step 5: Add Attachments (Optional)
+
+**Attachments (Drive IDs / URLs, comma or newline separated)** — Attach files to the email:
+
+- **Google Drive files** — Paste the file URL: `https://drive.google.com/file/d/1abc123XYZ/view?usp=sharing` or just the file ID
+- **Public URLs** — Paste any public link: `https://example.com/document.pdf`
+- **Upload files** — Use the "Upload files" input below to pick files directly from your computer (this sending only; not saved)
+
+Examples:
+```
+https://drive.google.com/file/d/1abc123XYZ/view
+1abc123XYZ
+https://example.com/flyer.pdf
+```
+
+##### Step 6: Send or Save
+
+- **Clean + Dedup + Send** — Removes duplicate emails, then sends the campaign to all selected recipients. Failed sends are logged and removed from the list. Bounce audit runs automatically afterward.
+  
+- **Save inputs** — Stores the subject, body, body mode, and attachments for later. Useful if you want to tweak formatting or use the same email again.
+
+#### Send now (use saved inputs)
+
+Sends using previously saved subject, body, and attachments without opening the sidebar. Useful for quick re-sends without re-entering data.
+
+#### Schedule Re-Send in 1 Week
+
+Creates a time-based trigger to automatically re-send the last campaign (same subject, body, attachments, partition filter) after 7 days. The trigger runs in the background; check the Apps Script log (Extensions > Apps Script > Logs) to see when it executed.
 
 ### Managing Subscribers
 
