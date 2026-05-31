@@ -130,7 +130,10 @@ Opens an interactive sidebar to compose and send emails. This is the main interf
 
 Enter your email body in the text area (Plain/HTML) or editor (Rich mode).
 
-**Personalization** — Use these placeholders in the body too:
+**Personalization** — 
+
+In subject and body, use these placeholders to personalize messages:
+
 - `{{First Name}}`
 - `{{Last Name}}`
 - `{{Affiliation}}`
@@ -235,9 +238,7 @@ When to run:
 
 Prompts for a new partition count between 1 and 26. **Setting the count does not assign partitions** — you must run **Assign/Refresh Partitions** afterward to actually re-bucket the rows.
 
-Tip: divide your list size by your daily quota to get a sensible count.
-- 470 subscribers / 100 per day (consumer Gmail) → 5 partitions → ~94 emails per day for 5 days.
-- 2,000 subscribers / 1,500 per day (Workspace) → 2 partitions → split across 2 days.
+Tip: divide your list size by your daily quota to get a sensible count. See "How Partitions Work"
 
 #### Import Legacy CSV (from Drive)
 
@@ -290,16 +291,6 @@ Run this every few days after a campaign, or whenever you notice high bounce rat
 
 Deletes all time-based triggers for `adminResendHandler`. Use this if you scheduled a re-send and want to cancel it before it fires. (See [Schedule Re-Send in 1 Week](#schedule-re-send-in-1-week).)
 
-## Email Template Placeholders
-
-In subject and body, use these placeholders to personalize messages:
-
-- `{{First Name}}`
-- `{{Last Name}}`
-- `{{Affiliation}}`
-- `{{Role}}`
-- `{{Email Address}}`
-
 ## Configuration
 
 All settings are in `CONFIG` (Shared.gs):
@@ -332,6 +323,25 @@ Note: this is the Apps Script quota, not the Gmail web UI quota. The script's pr
 5. Repeat for partitions 2, 3, 4 over the following days.
 
 Each day stays well under the 100-recipient quota and avoids the bulk-pattern that can trigger Google's account-level send restrictions.
+
+### Alternative: distribute partitions among multiple senders
+
+Instead of one person sending across multiple days, the same partition scheme can be split across multiple Gmail accounts so the whole campaign goes out on the same day. Each sender's quota is independent — five people on consumer Gmail can collectively deliver 500 emails in a single day (5 × 100), and five people on Workspace can deliver up to 7,500.
+
+Workflow:
+
+1. **Owner** — In the shared Google Sheet, run **Set Partition Count** with the number of senders, then **Assign/Refresh Partitions**.
+2. **Owner** — Share the spreadsheet with each sender (Editor access). Each sender must also be authorized to run the Apps Script — they will be prompted on their first menu click.
+3. **Each sender** — Opens the spreadsheet, goes to **Admin Tools → Send now (Sidebar)**, and:
+   - Selects **their assigned partition** (e.g. Alice takes Partition 0, Bob takes Partition 1, etc.).
+   - Composes (or pastes) the same subject and body. To keep wording consistent, the owner can send first and click **Save inputs**; other senders can then use **Send now (use saved inputs)** and just change the partition filter.
+   - Clicks **Send**. Emails go out from that sender's Gmail account (their address appears in the **From** header).
+
+Warnings:
+
+- **From address differs per sender.** Recipients in partition 0 see Alice's address; recipients in partition 1 see Bob's. That's usually fine for outreach but may not be desirable for a transactional or branded campaign.
+- **Attachments uploaded from one sender's computer are not visible to others.** Use Google Drive file IDs or public URLs in the **Attachments** field so every sender attaches the same files.
+- **Coordinate via the sheet.** All senders edit the same "Email List" — avoid running **Clean + Deduplicate**, **Assign/Refresh Partitions**, or imports while someone else is mid-send, since deleting rows shifts partition assignments.
 
 ## Scripts
 
