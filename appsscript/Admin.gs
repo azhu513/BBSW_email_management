@@ -200,7 +200,7 @@ function adminOpenSendSidebar() {
       </div>
 
       <div style="margin-top:12px;">
-        <button id="sendBtn" style="padding:8px 12px;">Clean + Dedup + Send</button>
+        <button id="sendBtn" style="padding:8px 12px;">Send</button>
         <button id="saveBtn" style="padding:8px 12px; margin-left:8px;">Save inputs</button>
       </div>
 
@@ -297,23 +297,20 @@ function adminHandleSidebarSend(data) {
   // Save for re-send
   adminSaveSidebarInputs(data);
 
-  // Clean first
-  adminCleanAndDedup();
+  // NOTE: The sidebar "Send" button intentionally does NOT run clean/dedup
+  // or unsubscribe-removal. Use "Clean + Deduplicate (Global)" or
+  // "Import Unsubscribe List" from the Admin Tools menu first if needed.
 
   // Build attachments (Drive + URLs + uploads)
   const { driveIds, urls } = splitAttachInputs_(attachIn);
   const attachBlobs = buildAttachments_(driveIds, urls, uploads);
 
-  // Send
-  const failures = adminSendToSubscribed_(subject, body, bodyMode, attachBlobs, pFilter);
+  // Send. Sending actions intentionally do NOT remove any rows from the sheet.
+  // To clean up bounces/unsubscribes, use "Audit Bounces (Global)" or
+  // "Import Unsubscribe List" from the Admin Tools menu.
+  adminSendToSubscribed_(subject, body, bodyMode, attachBlobs, pFilter);
 
-  // Remove immediately failed
-  removeEmailsFromSheet_(failures);
-
-  // Bounce audit
-  adminAuditBounces_silent_();
-
-  return 'Done: cleaned, sent, and audited bounces.';
+  return 'Done: emails sent. No rows were removed from the sheet.';
 }
 
 /***** ADMIN: SEND USING SAVED INPUTS *****/
@@ -331,15 +328,15 @@ function adminSendUsingSavedInputs() {
     return;
   }
 
-  adminCleanAndDedup();
+  // NOTE: This send path intentionally does NOT run clean/dedup.
+  // Run "Clean + Deduplicate (Global)" or "Import Unsubscribe List" from
+  // the Admin Tools menu beforehand if cleanup is needed.
 
   const { driveIds, urls } = splitAttachInputs_(attachIn);
   const attachBlobs = buildAttachments_(driveIds, urls, []);
 
-  const failures = adminSendToSubscribed_(subject, body, bodyMode, attachBlobs, pFilter);
-  removeEmailsFromSheet_(failures);
-
-  adminAuditBounces_silent_();
+  // Sending actions intentionally do NOT remove any rows from the sheet.
+  adminSendToSubscribed_(subject, body, bodyMode, attachBlobs, pFilter);
 }
 
 /***** ADMIN: CORE SEND FUNCTION *****/
@@ -357,8 +354,57 @@ function adminSendToSubscribed_(subjectTpl, bodyInput, bodyMode, attachBlobs, pa
   const partIdx = headers.indexOf('Partition');
   const filterByPartition = (partitionFilter !== 'ALL' && partIdx !== -1);
 
+  // Count intended recipients up front so we can check quota
+  let intendedCount = 0;
+  for (let r = 1; r < values.length; r++) {
+    const row = values[r];
+    if (normalizeStatus_(row[6]) !== 'subscribe') continue;
+    if (filterByPartition && String(row[partIdx]) !== String(partitionFilter)) continue;
+    if (!(row[5] || '').toString().trim()) continue;
+    intendedCount++;
+  }
+
+  // 1) Pre-send quota check
+  let remainingQuota;
+  try {
+    remainingQuota = MailApp.getRemainingDailyQuota();
+  } catch (e) {
+    remainingQuota = null; // proceed but cannot guard
+    Logger.log('Could not read remaining quota: ' + e.message);
+  }
+
+  if (remainingQuota === 0) {
+    uiAlert_(
+      `Gmail daily quota is 0 — cannot send any email today.\n\n` +
+      `Try again in 24 hours. Nothing was sent and no rows were modified.`
+    );
+    return [];
+  }
+
+  if (remainingQuota !== null && remainingQuota < intendedCount) {
+    const ui = SpreadsheetApp.getUi();
+    const resp = ui.alert(
+      'Gmail Quota Warning',
+      `Remaining Gmail quota today: ${remainingQuota}\n` +
+      `Intended recipients: ${intendedCount}\n\n` +
+      `If you continue, only the first ${remainingQuota} will be sent and the rest will be skipped. ` +
+      `\n\nContinue?`,
+      ui.ButtonSet.YES_NO
+    );
+    if (resp !== ui.Button.YES) {
+      uiAlert_('Send cancelled. No emails sent, no rows modified.');
+      return [];
+    }
+  }
+
+  // Regex to recognize quota / account-restriction errors (NOT real bounces)
+  const QUOTA_RE = /quota|limit exceeded|too many|service invoked|temporarily|unauthorized|authorization|rate/i;
+
   let sentCount = 0;
-  const failures = [];
+  let quotaHit = false;
+  let quotaMessage = '';
+  let skippedDueToQuota = 0;
+  const failures = [];          // real bad-address failures only — safe to remove
 
   for (let r = 1; r < values.length; r++) {
     const row = values[r];
@@ -370,6 +416,9 @@ function adminSendToSubscribed_(subjectTpl, bodyInput, bodyMode, attachBlobs, pa
 
     const email = (row[5] || '').toString().trim().toLowerCase();
     if (!email) continue;
+
+    // 4) If quota was already hit, skip remaining rows without attempting/sending
+    if (quotaHit) { skippedDueToQuota++; continue; }
 
     const payload = {
       'First Name':    safeString_(row[1]),
@@ -393,12 +442,39 @@ function adminSendToSubscribed_(subjectTpl, bodyInput, bodyMode, attachBlobs, pa
       sentCount++;
       Utilities.sleep(200);
     } catch (e) {
-      Logger.log(`Send failure for ${email}: ${e.message}`);
-      failures.push(email);
+      const msg = e && e.message ? e.message : String(e);
+      Logger.log(`Send failure for ${email}: ${msg}`);
+
+      // 3) Classify: quota/account error vs. real per-address failure
+      if (QUOTA_RE.test(msg)) {
+        quotaHit = true;
+        quotaMessage = msg;
+        // Do NOT add this email to `failures` — it is not a bounce.
+      } else {
+        failures.push(email);
+      }
     }
   }
 
-  uiAlert_(`Sent ${sentCount} email(s).${failures.length ? '\nFailed: ' + failures.join(', ') : ''}`);
+  // Surface a concise summary. Per-recipient error details are written
+  // to the Apps Script execution log (Executions tab) via Logger.log above.
+  if (quotaHit) {
+    uiAlert_(
+      `Sending stopped after ${sentCount} email(s) due to a Gmail quota or account restriction.\n\n` +
+      `Reason: ${quotaMessage}\n\n` +
+      `${skippedDueToQuota} remaining recipient(s) were SKIPPED.\n` +
+      `${failures.length} address(es) failed for other reasons.\n\n` +
+      `See the Apps Script "Executions" log for per-address error details.`
+    );
+  } else {
+    uiAlert_(
+      `Sent ${sentCount} email(s).` +
+      (failures.length
+        ? `\nFailed: ${failures.length} (see Executions log for details).`
+        : '')
+    );
+  }
+
   return failures;
 }
 
@@ -421,16 +497,17 @@ function adminResendHandler() {
 
   if (!subject || !body) { Logger.log('Re-send skipped: no saved subject/body.'); return; }
 
-  adminCleanAndDedup();
+  // NOTE: Scheduled re-send intentionally does NOT run clean/dedup.
+  // Run "Clean + Deduplicate (Global)" or "Import Unsubscribe List" from
+  // the Admin Tools menu beforehand if cleanup is needed.
 
   const { driveIds, urls } = splitAttachInputs_(attachIn);
   const attachBlobs = buildAttachments_(driveIds, urls, []);
 
-  const failures = adminSendToSubscribed_(subject, body, bodyMode, attachBlobs, pFilter);
-  removeEmailsFromSheet_(failures);
-  adminAuditBounces_silent_();
+  // Sending actions intentionally do NOT remove any rows from the sheet.
+  adminSendToSubscribed_(subject, body, bodyMode, attachBlobs, pFilter);
 
-  Logger.log('Admin re-send completed.');
+  Logger.log('Admin re-send completed. No rows were removed from the sheet.');
 }
 
 function adminRemoveResendTriggers() {

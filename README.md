@@ -181,33 +181,114 @@ https://example.com/flyer.pdf
 
 ##### Step 6: Send or Save
 
-- **Clean + Dedup + Send** — Removes duplicate emails, then sends the campaign to all selected recipients. Failed sends are logged and removed from the list. Bounce audit runs automatically afterward. Includes all attachments (Drive files, URLs, and uploaded files).
-  
+- **Send** — Sends the campaign to all selected recipients using all attachments (Drive files, URLs, and uploaded files). **The Send action does not modify the Email List sheet** — it will not deduplicate, will not remove unsubscribed addresses, and will not delete failed rows. Clean the list separately before sending if needed (see [Managing Subscribers](#managing-subscribers)). Before sending, the script checks your remaining Gmail quota and warns if it's insufficient.
+
 - **Save inputs** — Stores the subject, body, body mode, and attachments for later. Useful if you want to tweak formatting or use the same email again. **Note:** Only Drive files and URLs are saved; uploaded files are included only in this send and won't be available for re-use.
 
 #### Send now (use saved inputs)
 
-Sends using previously saved subject, body, body mode, partition filter, and attachments (Drive files and URLs only) without opening the sidebar. Useful for quick re-sends. **Note:** Uploaded files are not saved, so they won't be re-sent — only Drive files and public URLs attached to the saved inputs will be included.
+Sends using previously saved subject, body, body mode, partition filter, and attachments (Drive files and URLs only) without opening the sidebar. Useful for quick re-sends. As with the sidebar Send, this **does not modify the Email List sheet**. **Note:** Uploaded files are not saved, so they won't be re-sent — only Drive files and public URLs attached to the saved inputs will be included.
 
 #### Schedule Re-Send in 1 Week
 
-Creates a time-based trigger to automatically re-send the last campaign (same subject, body, attachments, partition filter) after 7 days. The trigger runs in the background; check the Apps Script log (Extensions > Apps Script > Logs) to see when it executed.
+Creates a time-based trigger to automatically re-send the last campaign (same subject, body, attachments, partition filter) after 7 days. The trigger runs in the background and **does not modify the Email List sheet**. Check the Apps Script log (Extensions > Apps Script > Executions) to see when it ran and whether any sends failed.
 
 ### Managing Subscribers
 
-**Clean + Deduplicate (Global)** — Removes duplicate email entries, keeping only the latest subscription status for each email.
+Send actions are intentionally non-destructive — they never modify the "Email List" sheet. Use the menu items below to manage the list itself.
 
-**Assign/Refresh Partitions** — Evenly distributes subscribers across N partitions (default: 4) using deterministic hashing. Guarantees partition sizes differ by at most 1 row.
+#### Recommended pre-send workflow
 
-**Set Partition Count** — Adjust the number of partitions (1–26) and re-run Assign/Refresh Partitions to apply.
+Before any campaign, run these in order from the **Admin Tools** menu:
 
-**Import Legacy CSV (from Drive)** — Import subscriber lists from a CSV file with columns: First Name, Last Name, Email Address, Affiliation, Role. Each import gets a distinct legacy timestamp for tracking.
+1. **Import Unsubscribe List** — if you have new unsubscribe requests to remove.
+2. **Clean + Deduplicate (Global)** — collapse duplicates and remove anyone whose latest status is "Unsubscribe".
+3. **Assign/Refresh Partitions** — only needed if you added rows; ensures partitions stay balanced.
+4. **Audit Bounces (Global)** — optional; clears addresses that bounced from prior campaigns.
 
-**Import Unsubscribe List** — Remove subscribers by pasting email addresses (one per line or comma-separated) or uploading a CSV with an "Email" or "Email Address" column.
+Once that's done, open **Send now (Sidebar)** to compose and send.
 
-**Audit Bounces (Global)** — Scans Gmail for bounce messages from mailer-daemon. Dry-run mode previews bounces without deletion; normal mode removes matching emails from the list.
+#### Clean + Deduplicate (Global)
 
-**Remove All Re-Send Triggers** — Cancels all scheduled re-send campaigns.
+Removes duplicate email entries and unsubscribed addresses from the "Email List" sheet.
+
+How it works:
+- Groups all rows by email address (case-insensitive).
+- For each email, looks at the row with the **latest Timestamp** (column A).
+- If that latest row says **Unsubscribe**, every row for that email is deleted.
+- If that latest row says **Subscribe**, only the latest row is kept and older duplicates are deleted.
+
+Run this whenever the list has grown — e.g. after importing a CSV, after a Google Form has added new rows, or after manually editing rows. The script reports how many rows were deleted.
+
+#### Assign/Refresh Partitions
+
+Evenly distributes subscribers across N partitions (default: 4). Adds or refreshes the **Partition** column (column H). Partition sizes differ by at most 1 row.
+
+When to run:
+- After importing new subscribers (Legacy CSV import does this automatically).
+- After **Set Partition Count** changes the bucket count.
+- If you've manually edited or deleted rows and want to rebalance.
+
+**Why this matters:** Apps Script's daily email quota is **100 recipients/day for consumer Gmail** and **1,500/day for Workspace**. If your list exceeds the quota, split sending across multiple days by selecting one partition at a time in the sidebar.
+
+#### Set Partition Count
+
+Prompts for a new partition count between 1 and 26. **Setting the count does not assign partitions** — you must run **Assign/Refresh Partitions** afterward to actually re-bucket the rows.
+
+Tip: divide your list size by your daily quota to get a sensible count.
+- 470 subscribers / 100 per day (consumer Gmail) → 5 partitions → ~94 emails per day for 5 days.
+- 2,000 subscribers / 1,500 per day (Workspace) → 2 partitions → split across 2 days.
+
+#### Import Legacy CSV (from Drive)
+
+Bulk-imports subscriber rows from a CSV stored on Google Drive. Use this when migrating from another tool or seeding a fresh list.
+
+Required CSV columns (exact order, case-insensitive headers):
+1. First Name
+2. Last Name
+3. Email Address
+4. Affiliation
+5. Role
+
+Steps:
+1. Upload your CSV to Google Drive.
+2. Get the file's URL (right-click → "Get link" → "Anyone with the link") or copy its file ID.
+3. **Admin Tools → Import Legacy CSV (from Drive)**.
+4. Paste the URL or file ID. The script will:
+   - Parse the CSV, skipping rows with no email address.
+   - Assign each row a synthetic "legacy" timestamp from `LEGACY_BASE_ISO` (default: 2000-01-01), incremented by 1 day per import, capped at yesterday.
+   - Mark all rows as **Subscribe**.
+   - Run **Clean + Deduplicate** automatically.
+   - Run **Assign/Refresh Partitions** automatically.
+
+Why the legacy timestamps? They keep imported rows older than any real subscription activity, so newer Subscribe/Unsubscribe rows always win during dedup.
+
+**Reset Legacy Backdate Sequence** — Resets the offset counter back to 0 so the next import starts again at the base date. Useful if you're re-importing from scratch.
+
+#### Import Unsubscribe List
+
+Removes addresses from the list. Two accepted input formats:
+
+- **Pasted addresses** — one per line, or comma/semicolon-separated. Anything containing `@` is treated as an email.
+- **Drive CSV** — paste a Google Drive URL or file ID. The CSV must have a column named "Email Address" or "Email" (case-insensitive). If the CSV has only one column, that column is assumed to be emails.
+
+Before deleting, the script shows a confirmation dialog listing the first 20 addresses and asks for YES/NO. Click YES to remove all matching rows from the "Email List" sheet.
+
+#### Audit Bounces (Global)
+
+Scans your Gmail inbox for delivery-failure messages from `mailer-daemon` or "Mail Delivery Subsystem" within the last `BOUNCE_LOOKBACK_DAYS` days (default: 3). Extracts the bounced email addresses from the message bodies and (optionally) deletes them from the list.
+
+Two-step prompt:
+1. **Dry Run? (YES/NO)** — Type **YES** to preview only (no deletions). Type **NO** to actually delete. Default is YES.
+2. **Optional Gmail Label** — Narrow the Gmail search to a specific label (e.g., `label:CampaignBounces`). Leave blank for no filter.
+
+Results are appended to a separate sheet named **"Bounce Audit Log"** with timestamp, query used, dry-run flag, number found, number removed, and the full email list.
+
+Run this every few days after a campaign, or whenever you notice high bounce rates.
+
+#### Remove All Re-Send Triggers
+
+Deletes all time-based triggers for `adminResendHandler`. Use this if you scheduled a re-send and want to cancel it before it fires. (See [Schedule Re-Send in 1 Week](#schedule-re-send-in-1-week).)
 
 ## Email Template Placeholders
 
@@ -231,11 +312,26 @@ All settings are in `CONFIG` (Shared.gs):
 
 ## How Partitions Work
 
-Partitions enable sending to large lists without hitting Gmail's rate limits. To send to 1000 subscribers:
+Partitions split your list into evenly-sized buckets so you can send to large lists across multiple days without hitting Gmail's daily quota. Partition assignment is deterministic — the same email always lands in the same partition unless you change the partition count.
 
-1. Set partition count to 4
-2. Each partition receives ~250 emails
-3. Send to partition 0, wait, send to partition 1, etc.
+### Gmail quota reminder
+
+| Account type | Apps Script daily quota |
+|---|---|
+| Consumer Gmail (`@gmail.com`) | **100 recipients/day** |
+| Google Workspace | **1,500 recipients/day** |
+
+Note: this is the Apps Script quota, not the Gmail web UI quota. The script's pre-send check (`MailApp.getRemainingDailyQuota`) will warn you if you're about to exceed it.
+
+### Example: 470 subscribers on consumer Gmail
+
+1. **Admin Tools → Set Partition Count** → enter `5`.
+2. **Admin Tools → Assign/Refresh Partitions** — each partition now has ~94 rows.
+3. **Day 1:** Send now (Sidebar) → choose "Partition 0" → Send.
+4. **Day 2:** Send now (use saved inputs) and switch the filter to Partition 1 — or open the sidebar again and pick "Partition 1".
+5. Repeat for partitions 2, 3, 4 over the following days.
+
+Each day stays well under the 100-recipient quota and avoids the bulk-pattern that can trigger Google's account-level send restrictions.
 
 ## Scripts
 
