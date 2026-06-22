@@ -12,6 +12,28 @@ A Google Apps Script tool for managing email subscriber lists and batch sending 
 - **Legacy Import**: Import subscriber lists from CSV files with automatic timestamping
 - **Re-send Scheduling**: Schedule campaigns to re-send after a configurable delay (default: 7 days)
 
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
+
+You are free to use, modify, and distribute this software — including for
+commercial purposes — provided that any distributed version (modified or not)
+is also released under GPLv3 with full source code available.
+
+This software is provided "AS IS", without warranty of any kind. See the
+LICENSE file for the full disclaimer of warranty and limitation of liability.
+
+## Support and Feedback
+
+This is a volunteer-maintained project — there is no SLA and responses are
+best-effort. Feedback, bug reports, and pull requests are very welcome.
+
+- **Bugs or unexpected behavior** → [open an Issue](../../issues/new/choose)
+- **"How do I…" questions** → [start a Q&A Discussion](../../discussions)
+- **Feature ideas** → [start an Ideas Discussion](../../discussions)
+- **Contributing code** → see [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Full support policy and what to expect** → see [SUPPORT.md](SUPPORT.md)
+
 ## Setup
 
 ### 1. Create a Google Sheet
@@ -353,3 +375,4 @@ Warnings:
 
 - All errors and activity are logged to the Apps Script log (View > Logs)
 - Bounce audits are also recorded in the "Bounce Audit Log" sheet with timestamp, query, and results
+

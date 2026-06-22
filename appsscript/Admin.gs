@@ -1,6 +1,6 @@
 /*
  * BBSW Email Management
- * Copyright (C) 2026 <Your Name or Organization>
+ * Copyright (C) 2026 <Anqi Zhu>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -11,7 +11,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details: https://www.gnu.org/licenses/gpl-3.0.html
  */
- 
+
 /***** ADMIN: PARTITION MANAGEMENT *****/
 
 function adminSetPartitionCount() {
