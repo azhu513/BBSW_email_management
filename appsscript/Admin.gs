@@ -368,13 +368,20 @@ function adminSendToSubscribed_(subjectTpl, bodyInput, bodyMode, attachBlobs, pa
   const partIdx = headers.indexOf('Partition');
   const filterByPartition = (partitionFilter !== 'ALL' && partIdx !== -1);
 
+  // Read the "Exclude in Send" tab once. Addresses listed there are skipped
+  // for this send only; the Email List sheet is not modified.
+  const excluded = getExcludedEmails_();
+
   // Count intended recipients up front so we can check quota
   let intendedCount = 0;
+  let excludedSkipCount = 0;
   for (let r = 1; r < values.length; r++) {
     const row = values[r];
     if (normalizeStatus_(row[6]) !== 'subscribe') continue;
     if (filterByPartition && String(row[partIdx]) !== String(partitionFilter)) continue;
-    if (!(row[5] || '').toString().trim()) continue;
+    const e = (row[5] || '').toString().trim().toLowerCase();
+    if (!e) continue;
+    if (excluded.has(e)) { excludedSkipCount++; continue; }
     intendedCount++;
   }
 
@@ -431,6 +438,9 @@ function adminSendToSubscribed_(subjectTpl, bodyInput, bodyMode, attachBlobs, pa
     const email = (row[5] || '').toString().trim().toLowerCase();
     if (!email) continue;
 
+    // Skip addresses listed in the "Exclude in Send" tab
+    if (excluded.has(email)) continue;
+
     // 4) If quota was already hit, skip remaining rows without attempting/sending
     if (quotaHit) { skippedDueToQuota++; continue; }
 
@@ -472,12 +482,16 @@ function adminSendToSubscribed_(subjectTpl, bodyInput, bodyMode, attachBlobs, pa
 
   // Surface a concise summary. Per-recipient error details are written
   // to the Apps Script execution log (Executions tab) via Logger.log above.
+  const excludedNote = excludedSkipCount
+    ? `\n(Excluded ${excludedSkipCount} address(es) via "${CONFIG.EXCLUDE_SHEET_NAME}" tab.)`
+    : '';
   if (quotaHit) {
     uiAlert_(
       `Sending stopped after ${sentCount} email(s) due to a Gmail quota or account restriction.\n\n` +
       `Reason: ${quotaMessage}\n\n` +
       `${skippedDueToQuota} remaining recipient(s) were SKIPPED.\n` +
-      `${failures.length} address(es) failed for other reasons.\n\n` +
+      `${failures.length} address(es) failed for other reasons.` +
+      excludedNote + `\n\n` +
       `See the Apps Script "Executions" log for per-address error details.`
     );
   } else {
@@ -485,7 +499,8 @@ function adminSendToSubscribed_(subjectTpl, bodyInput, bodyMode, attachBlobs, pa
       `Sent ${sentCount} email(s).` +
       (failures.length
         ? `\nFailed: ${failures.length} (see Executions log for details).`
-        : '')
+        : '') +
+      excludedNote
     );
   }
 

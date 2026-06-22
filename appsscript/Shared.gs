@@ -15,6 +15,7 @@
 /***** CONFIGURATION (ADMIN) *****/
 const CONFIG = {
   SHEET_NAME: 'Email List',
+  EXCLUDE_SHEET_NAME: 'Exclude in Send',
   RESEND_DELAY_DAYS: 7,
 
   // Script Properties keys
@@ -154,6 +155,26 @@ function removeEmailsFromSheet_(emails) {
   }
   rows.sort((a, b) => b - a).forEach(idx => sh.deleteRow(idx));
   return rows.length;
+}
+
+/**
+ * Reads the "Exclude in Send" tab (if present) and returns the set of
+ * lowercase email addresses to skip during send. The tab is expected to
+ * mirror the "Email List" structure — column F holds the Email Address.
+ * Missing tab → returns an empty set (no exclusions).
+ */
+function getExcludedEmails_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.EXCLUDE_SHEET_NAME);
+  if (!sh) return new Set();
+  const values = sh.getDataRange().getValues();
+  if (values.length < 2) return new Set();
+
+  const set = new Set();
+  for (let r = 1; r < values.length; r++) {
+    const email = (values[r][5] || '').toString().trim().toLowerCase();
+    if (email && email.indexOf('@') !== -1) set.add(email);
+  }
+  return set;
 }
 
 /***** ATTACHMENT BUILDERS (with Drive + URL + upload support) *****/

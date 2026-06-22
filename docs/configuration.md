@@ -18,6 +18,7 @@ All settings are constants in the `CONFIG` object at the top of `Shared.gs`.
 | Key | Default | Description |
 |---|---|---|
 | `SHEET_NAME` | `'Email List'` | Name of the subscriber list sheet tab. |
+| `EXCLUDE_SHEET_NAME` | `'Exclude in Send'` | Optional sheet tab listing email addresses to skip during sends. See [Follow-up Campaigns](follow-up-campaigns.md). |
 | `RESEND_DELAY_DAYS` | `7` | Days to wait before the scheduled re-send trigger fires. |
 | `PROP_PARTITION_COUNT` | `'PARTITION_COUNT'` | Script Property key holding the current partition count. |
 | `PROP_SUBJECT` | `'SUBJECT'` | Script Property key for the saved subject. |

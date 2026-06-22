@@ -7,12 +7,14 @@ A Google Apps Script tool for managing email subscriber lists and batch sending 
 ## Features
 
 - **Email list management** — Subscribe/unsubscribe tracking with deduplication, CSV import, and unsubscribe-list import.
+- **Send email campaigns** — Compose and send campaigns to all subscribers or a chosen partition, with placeholder personalization and an in-sheet sidebar UI.
+- **Follow-up campaigns** — Maintain an "Exclude in Send" tab to automatically skip people who already responded, without modifying the main subscriber list.
+- **Re-send scheduling** — Schedule a campaign to re-send after a configurable delay.
 - **Partitioned sending** — Split large lists into balanced buckets to send across multiple days or among multiple senders without hitting Gmail's daily quota.
 - **Flexible body formats** — Plain text (auto-converted to HTML), raw HTML, or rich-text editing.
 - **Attachments** — Files from Google Drive, public URLs, or direct upload from the sidebar.
 - **Bounce auditing** — Scan Gmail for delivery-failure messages and (optionally) remove bounced addresses.
-- **Quota-aware** — Pre-send quota check; non-destructive sends never delete rows on failure.
-- **Re-send scheduling** — Schedule a campaign to re-send after a configurable delay.
+- **Quota-aware** — Pre-send quota check by account type (personal or corporate) to avoid account mal-function.
 
 ## Quick start
 
@@ -28,6 +30,7 @@ Full installation walkthrough → [docs/setup.md](docs/setup.md)
 - 📦 **[Setup](docs/setup.md)** — Install the tool in a new Google Sheet.
 - 👥 **[Managing Subscribers](docs/managing-subscribers.md)** — Clean/dedup, CSV import, unsubscribe import, bounce audit.
 - 📤 **[Sending Campaigns](docs/sending-campaigns.md)** — The Send sidebar, body modes, attachments, images, saved inputs, scheduled re-send.
+- 🔁 **[Follow-up Campaigns](docs/follow-up-campaigns.md)** — Exclude people who already responded so they don't receive the next round.
 - 🗂 **[Partitions and Gmail Quotas](docs/partitions-and-quotas.md)** — Quota reference, single-sender and multi-sender workflows, troubleshooting "100 sent then failed."
 - ⚙️ **[Configuration](docs/configuration.md)** — `CONFIG` keys, file layout, Script Properties, logs.
 

@@ -5,9 +5,22 @@ project, a few notes will save us both time.
 
 ## Before you start
 
-1. **Open an Issue or Discussion first** for any non-trivial change.
+1. **Read the relevant [docs](docs/) page first.** A surprising number of
+   feature ideas turn out to already be supported by an existing menu
+   item or workflow. Skim at least:
+   - [Sending Campaigns](docs/sending-campaigns.md) — body modes,
+     attachments, saved inputs, scheduled re-send.
+   - [Managing Subscribers](docs/managing-subscribers.md) — clean/dedup,
+     imports, unsubscribes, bounce audit.
+   - [Partitions and Gmail Quotas](docs/partitions-and-quotas.md) —
+     splitting large sends, multi-sender workflows.
+2. **Open an Issue or Discussion first** for any non-trivial change.
    A five-minute "is this in scope?" conversation can save a two-hour PR.
-2. **Search existing Issues and Discussions** to see if your idea has
+   - For "I think the tool should also do X" → file a
+     [Feature request](../../issues/new?template=feature_request.md).
+   - For "I'm not sure how to accomplish Y with the current tool" →
+     ask in [Discussions → Q&A](../../discussions) **before** writing code.
+3. **Search existing Issues and Discussions** to see if your idea has
    already been raised.
 
 ## Pull request guidelines
@@ -45,3 +58,9 @@ Some kinds of changes are unlikely to be accepted:
 - Major architectural rewrites without a prior Discussion.
 - Dependencies on external services beyond Google Workspace
   (Gmail, Drive, Sheets, Apps Script).
+- Features that are outside the intended purpose of this tool
+  (managing a subscriber list and batch-sending email campaigns from a
+  Google Sheet).
+- Features that the current tool can already do under a different menu
+  item or workflow — please check the [docs](docs/) and ask in
+  [Discussions → Q&A](../../discussions) if you're unsure.
