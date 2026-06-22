@@ -41,7 +41,7 @@ This software is provided "AS IS", without warranty of any kind. See the [LICENS
 
 ## Support and Feedback
 
-This is a volunteer-maintained project — there is no SLA and responses are best-effort. Feedback, bug reports, and pull requests are very welcome.
+This is a volunteer-maintained project — I do not provide full-time support and responses are best-effort. Feedback, bug reports, and pull requests are very welcome.
 
 - **Bugs or unexpected behavior** → [open an Issue](../../issues/new/choose)
 - **"How do I…" questions** → [start a Q&A Discussion](../../discussions)
